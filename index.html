@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>파크나우 ParkNow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 운전자가 한눈에 읽는 도로 표지판처럼 짧고 단호하게
+   IDEA: 파란 주차 안내 표지판 + 신호등
+   PICTURE: 목적지 반경 500m 지도와 신호등 색 주차장 표지
+   COLOUR and TYPE: 표지판 파랑 #1546c9 바탕, 흰색, 신호 3색은 상태에만 / IBM Plex Sans KR
+   LAYOUT: 데스크톱은 왼쪽 프로젝트 설명·시연 도구, 오른쪽 휴대폰 화면 / 모바일은 앱이 먼저 */
+:root{color-scheme:light dark;
+--bg:light-dark(#eef1f7,#0d1220);--panel:light-dark(#ffffff,#161d2f);--ink:light-dark(#121826,#eef2fb);--sub:light-dark(#5a6378,#a3adc4);
+--line:light-dark(#dfe4ee,#2a3450);--blue:#1546c9;--blue2:light-dark(#e7eeff,#1d2a52);
+--ok:light-dark(#0f8a4a,#3ccf84);--mid:light-dark(#b86b00,#ffb547);--full:light-dark(#d1293d,#ff6b7d);
+--okbg:light-dark(#e3f6ec,#123326);--midbg:light-dark(#fff2dc,#3a2a10);--fullbg:light-dark(#fde7ea,#3d1820)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "IBM Plex Sans KR",system-ui,sans-serif;overflow-x:clip}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid #ffb800;outline-offset:2px}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:clamp(24px,4vw,56px);max-width:1180px;margin:0 auto;padding:clamp(20px,4vw,48px) max(4vw,16px);align-items:start}
+.info h1{font-size:clamp(32px,4.4vw,48px);line-height:1.05;margin:0 0 12px;text-wrap:balance}
+.info h1 small{display:block;font-size:17px;font-weight:500;color:var(--sub);margin-top:10px;line-height:1.4}
+.sign{display:inline-grid;place-items:center;width:52px;height:52px;border-radius:10px;background:var(--blue);color:#fff;font-weight:700;font-size:30px;margin-bottom:16px;box-shadow:inset 0 0 0 3px #fff,0 0 0 2px var(--blue)}
+.info h2{font-size:17px;margin:28px 0 8px}
+.info p,.info li{color:var(--sub);max-width:62ch}
+.info ol{padding-left:20px;margin:0}
+.info li{margin:4px 0}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:10px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-weight:500}
+.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.big{display:block;width:100%;min-height:56px;font-size:18px;font-weight:700}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.timer{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums}
+.log{font-size:14px;color:var(--sub);margin:8px 0 0;padding-left:18px;max-height:140px;overflow:auto}
+.note{font-size:13px;color:var(--sub)}
+/* phone */
+.phone{position:sticky;top:20px;height:min(820px,calc(100vh - 40px));min-height:640px;background:var(--panel);border-radius:34px;border:10px solid #10151f;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 60px -30px rgba(10,20,50,.45)}
+.bar{background:var(--blue);color:#fff;padding:14px 16px 12px;flex:none}
+.bar .top{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
+.bar .top .p{display:grid;place-items:center;width:28px;height:28px;border-radius:6px;background:#fff;color:var(--blue);font-size:17px}
+.bar .back{margin-left:auto;background:none;border:0;color:#fff;min-height:44px;padding:0 6px;font-size:15px}
+.search{display:flex;gap:8px;margin-top:10px}
+.search input{flex:1;min-height:48px;border-radius:10px;border:0;padding:0 14px;font-size:16px;background:#fff;color:#121826}
+.search button{min-height:48px;padding:0 16px;border-radius:10px;border:0;background:#0b2a80;color:#fff;font-weight:700}
+.screen{flex:1;overflow:auto;position:relative}
+.pad{padding:16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 18px}
+.chip{min-height:44px;padding:0 14px;border-radius:22px;border:1px solid var(--line);background:var(--panel)}
+.safety{display:flex;gap:10px;background:var(--midbg);border-radius:12px;padding:12px 14px;font-size:14px}
+.safety b{color:var(--mid)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;margin:14px 0}
+.st{display:inline-flex;align-items:center;gap:6px;font-weight:700;white-space:nowrap;border-radius:8px;padding:3px 9px;font-size:15px}
+.st.ok{color:var(--ok);background:var(--okbg)}.st.mid{color:var(--mid);background:var(--midbg)}.st.full{color:var(--full);background:var(--fullbg)}
+.map{position:relative;height:290px;background:light-dark(#e9edf3,#1b2336);border-bottom:1px solid var(--line)}
+.rd{stroke:light-dark(#fff,#2a3552)}
+.map svg{position:absolute;inset:0;width:100%;height:100%}
+.map .cap{position:absolute;left:10px;bottom:8px;font-size:12px;background:var(--panel);padding:2px 8px;border-radius:6px;color:var(--sub)}
+.tabs{display:flex;gap:6px;padding:12px 16px 4px}
+.tab{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:15px}
+.tab[aria-pressed=true]{background:var(--ink);color:var(--panel);border-color:var(--ink);font-weight:700}
+.cards{list-style:none;margin:0;padding:8px 16px 20px;display:grid;gap:10px}
+.card{width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}
+.card.sel{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue)}
+.card .nm{font-weight:700;font-size:16px;grid-column:1/-1;display:flex;justify-content:space-between;gap:8px}
+.card .meta{font-size:15px;color:var(--sub);white-space:nowrap}
+.card .meta b{color:var(--ink)}
+.card .upd{font-size:13px;color:var(--sub);text-align:right;white-space:nowrap}
+.rank{font-size:12px;font-weight:700;color:light-dark(#1546c9,#b9caff);background:var(--blue2);border-radius:6px;padding:1px 7px;white-space:nowrap}
+.empty{text-align:center;color:var(--sub);padding:40px 20px}
+/* sheet */
+.dim{position:absolute;inset:0;background:rgba(8,12,24,.45);display:flex;align-items:flex-end;z-index:5}
+.sheet{background:var(--panel);width:100%;border-radius:20px 20px 0 0;padding:18px 16px 20px;max-height:92%;overflow:auto;animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(30px);opacity:.4}}
+@media(prefers-reduced-motion:reduce){.sheet{animation:none}}
+.sheet h3{margin:0 0 4px;font-size:20px;line-height:1.25}
+.bignum{display:flex;align-items:baseline;gap:10px;margin:12px 0}
+.bignum .n{font-size:44px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 16px}
+.facts div{background:var(--bg);border-radius:10px;padding:10px;font-size:13px;color:var(--sub)}
+.facts b{display:block;font-size:17px;color:var(--ink);white-space:nowrap}
+.stack2{display:grid;gap:8px}
+.links{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.links a{display:grid;place-items:center;min-height:48px;border-radius:10px;border:1px solid var(--line);text-decoration:none;color:var(--ink);font-weight:500}
+.alert{border-top:6px solid var(--full)}
+.alt{border:2px solid var(--ok);border-radius:14px;padding:14px;margin:12px 0}
+.guide{padding:16px}
+.guide .now{background:var(--blue);color:#fff;border-radius:16px;padding:16px}
+.guide .now .k{font-size:14px;opacity:.85}
+.guide .now h3{margin:2px 0 10px;font-size:22px}
+.live{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--sub);margin:12px 0}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--ok);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media(prefers-reduced-motion:reduce){.dot{animation:none}}
+.toast{position:absolute;left:16px;right:16px;bottom:16px;background:var(--ink);color:var(--panel);border-radius:12px;padding:12px 14px;font-size:15px;z-index:6}
+@media(max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)}.phone{order:-1;position:relative;top:0;border-width:0;border-radius:0;height:100svh;min-height:600px;margin:calc(-1*clamp(20px,4vw,48px)) calc(-1*max(4vw,16px)) 0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="info" aria-label="프로젝트 설명">
+    <div class="sign" aria-hidden="true">P</div>
+    <h1>파크나우: 만차를 도착 전에 알고, 바로 다음 주차장으로
+      <small>도심 공영주차장 실시간 잔여면 안내 및 대체 주차장 추천 서비스 · 박민서(243432)</small></h1>
+    <p>도심 목적지에 도착했는데 주차장이 만차라 주변을 2~3회 돌며 시간을 버리는 문제를 해결합니다. 사용자 연구에서 확인한 두 마찰 지점, ① 출발 전 자리 유무를 몰라 거리로만 고르는 문제, ② 만차 후 재검색해도 같은 정보만 보여 복구하지 못하는 문제를 겨냥했습니다.</p>
+
+    <h2>시연 방법</h2>
+    <ol>
+      <li>목적지 검색(예: 홍대입구역) → 반경 500m 공영주차장을 신호등 색과 함께 확인</li>
+      <li>카드를 눌러 상세 정보 확인 → <b>이 주차장으로 안내</b></li>
+      <li>아래 <b>만차 상황 만들기</b>를 누르면 대체 1순위 추천이 나타납니다</li>
+    </ol>
+
+    <div class="box">
+      <div class="row" style="justify-content:space-between">
+        <b>시연 도구</b>
+        <span class="note" id="tickInfo">잔여면은 10초마다 갱신(시뮬레이션)</span>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn pri" id="forceFull" disabled>만차 상황 만들기</button>
+        <button class="btn" id="resetAll">처음으로</button>
+      </div>
+      <p class="note" style="margin:8px 0 0" id="forceHint">주차장 안내를 시작하면 사용할 수 있습니다.</p>
+    </div>
+
+    <div class="box">
+      <div class="row" style="justify-content:space-between"><b>사용성 테스트(UT) 타이머</b><span class="note">목표: 탐색 6분 이하</span></div>
+      <div class="timer" id="utTime" aria-live="off">00:00</div>
+      <p class="note" style="margin:0">첫 검색에서 시작해 안내 시작(또는 대체 주차장 선택) 때 멈춥니다.</p>
+      <ol class="log" id="utLog"></ol>
+    </div>
+
+    <p class="note" style="margin-top:18px">주차장 이름·잔여면·요금은 시연용 가상 데이터입니다. 실제 서비스는 공공데이터포털(data.go.kr) 실시간 주차정보 API로 바꿔 연결합니다. 결제·예약·자체 내비게이션은 기획서의 제외 범위입니다.</p>
+  </section>
+
+  <section class="phone" aria-label="파크나우 앱 화면">
+    <header class="bar">
+      <div class="top"><span class="p" aria-hidden="true">P</span>파크나우<button class="back" id="backBtn" hidden>← 목록</button></div>
+      <form class="search" id="searchForm" role="search">
+        <input id="q" list="dests" placeholder="목적지를 검색하세요" autocomplete="off" aria-label="목적지 검색">
+        <datalist id="dests"></datalist>
+        <button type="submit">검색</button>
+      </form>
+    </header>
+    <div class="screen" id="screen"></div>
+  </section>
+</div>
+
+<script>
+{
+const DESTS=[
+ {id:'hongdae',name:'홍대입구역',lat:37.5572,lng:126.9245,lots:[['서교동 공영주차장',-180,-220,120,5,'24시간'],['동교동 노외 공영주차장',260,120,60,4,'07~23시'],['연남동 공영주차장',-90,380,45,5,'24시간'],['홍익로 지하 공영주차장',120,-330,210,6,'24시간'],['서교초교 앞 공영주차장',-420,40,38,3,'08~22시']]},
+ {id:'seongsu',name:'성수역',lat:37.5446,lng:127.0557,lots:[['성수1가 공영주차장',-240,150,80,4,'24시간'],['아차산로 공영주차장',200,-60,150,5,'24시간'],['성수동 카페거리 공영주차장',-60,-310,55,6,'08~23시'],['뚝섬로 노외 공영주차장',350,260,95,4,'24시간']]},
+ {id:'gangnam',name:'강남역',lat:37.4979,lng:127.0276,lots:[['역삼동 공영주차장',220,90,180,8,'24시간'],['서초동 지하 공영주차장',-200,-140,240,8,'24시간'],['강남대로 노외 공영주차장',60,330,70,6,'07~24시'],['테헤란로 공영주차장',410,-60,130,7,'24시간']]},
+ {id:'euljiro',name:'을지로3가역',lat:37.5663,lng:126.9919,lots:[['을지로 공영주차장',-150,60,110,4,'24시간'],['충무로 노외 공영주차장',180,-210,65,4,'07~22시'],['세운상가 공영주차장',-30,-360,200,5,'24시간'],['입정동 공영주차장',330,140,40,3,'08~21시']]},
+ {id:'mangwon',name:'망원시장',lat:37.5560,lng:126.9060,lots:[['망원1동 공영주차장',-120,-160,50,3,'24시간'],['망원시장 고객 공영주차장',90,70,35,3,'09~22시'],['합정로 노외 공영주차장',300,-260,120,4,'24시간'],['망원한강공원 공영주차장',-380,330,250,3,'24시간']]}
+];
+const TICK=10;
+let S={view:'home',dest:null,lots:[],sort:'rec',sel:null,guide:null,sheet:null,toast:'',ut:{start:null,stop:null,log:[]}};
+const $=s=>document.querySelector(s);
+const scr=$('#screen');
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const won=n=>n.toLocaleString('ko-KR')+'원';
+const fee30=l=>l.fee5*6*100;
+function status(l){if(l.avail<=0)return{k:'full',t:'만차',i:'■'};if(l.avail/l.total<.15)return{k:'mid',t:'보통',i:'▲'};return{k:'ok',t:'여유',i:'●'}}
+const rankOf={ok:0,mid:1,full:2};
+const walkMin=l=>Math.max(1,Math.round(Math.hypot(l.dx,l.dy)*1.3/70));
+function ago(s){return s<10?'방금 갱신':s<60?s+'초 전 갱신':Math.floor(s/60)+'분 전 갱신'}
+function badge(l){const s=status(l);return `<span class="st ${s.k}"><span aria-hidden="true">${s.i}</span>${s.t}${s.k!=='full'?' '+l.avail+'면':''}</span>`}
+function seeded(i){const x=Math.sin(i*99.7+S.dest.lat*1000)*10000;return x-Math.floor(x)}
+function loadDest(d){
+  S.dest=d;
+  S.lots=d.lots.map((a,i)=>{const total=a[3];let r=seeded(i);let avail=r<.25?0:r<.5?Math.max(1,Math.round(total*.08)):Math.round(total*(.18+r*.35));
+    return{id:d.id+i,name:a[0],dx:a[1],dy:a[2],total,fee5:a[4],hours:a[5],avail,age:Math.floor(r*50)}});
+}
+function lat(l){return S.dest.lat+l.dy/111000}
+function lng(l){return S.dest.lng+l.dx/(111000*Math.cos(S.dest.lat*Math.PI/180))}
+function sorted(){
+  const L=[...S.lots];
+  if(S.sort==='near')L.sort((a,b)=>walkMin(a)-walkMin(b));
+  else if(S.sort==='cheap')L.sort((a,b)=>a.fee5-b.fee5||walkMin(a)-walkMin(b));
+  else L.sort((a,b)=>rankOf[status(a).k]-rankOf[status(b).k]||walkMin(a)-walkMin(b));
+  return L;
+}
+function recommend(excludeId){
+  const c=S.lots.filter(l=>l.id!==excludeId&&status(l).k!=='full');
+  if(!c.length)return null;
+  c.sort((a,b)=>(walkMin(a)+(status(a).k==='mid'?4:0)+fee30(a)/2000)-(walkMin(b)+(status(b).k==='mid'?4:0)+fee30(b)/2000));
+  return c[0];
+}
+const byId=id=>S.lots.find(l=>l.id===id);
+
+/* UT timer */
+function utMark(msg){
+  const u=S.ut;if(!u.start&&msg!=='start')return;
+  if(msg==='start'){if(u.start&&!u.stop)return;u.start=Date.now();u.stop=null;u.log=[]; msg='첫 검색';}
+  if(u.stop)return;
+  const t=fmt(Date.now()-u.start);u.log.push(t+' '+msg);
+  $('#utLog').innerHTML=u.log.map(x=>`<li>${esc(x)}</li>`).join('');
+}
+function utStop(msg){if(S.ut.start&&!S.ut.stop){utMark(msg);S.ut.stop=Date.now();}}
+function fmt(ms){const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+setInterval(()=>{const u=S.ut;$('#utTime').textContent=u.start?fmt((u.stop||Date.now())-u.start):'00:00'},500);
+
+/* views */
+function homeView(){
+  return `<div class="pad">
+  <p style="margin:4px 0 0;font-weight:700;font-size:18px">어디로 가시나요?</p>
+  <p class="note" style="margin:2px 0 0">목적지 반경 500m 공영주차장의 자리 상황을 먼저 보여 드려요.</p>
+  <div class="chips">${DESTS.map(d=>`<button class="chip" data-dest="${d.id}">${d.name}</button>`).join('')}</div>
+  <div class="legend" aria-label="자리 상태 범례">${['ok:●:여유','mid:▲:보통','full:■:만차'].map(x=>{const[k,i,t]=x.split(':');return`<span class="st ${k}"><span aria-hidden="true">${i}</span>${t}</span>`}).join('')}</div>
+  <div class="safety"><span aria-hidden="true">⚠</span><div><b>운전 중에는 조작하지 마세요.</b><br>출발 전이나 안전하게 정차한 뒤 확인해 주세요.</div></div>
+  <p class="note" style="margin-top:16px">시연 데이터는 홍대입구역·성수역·강남역·을지로3가역·망원시장 5곳만 지원합니다.</p></div>`;
+}
+function mapSvg(){
+  const R=700;
+  const roads=[-500,-250,0,250,500];
+  const st=l=>status(l).k;
+  const col={ok:'var(--ok)',mid:'var(--mid)',full:'var(--full)'};
+  return `<svg viewBox="-600 -440 1200 880" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(S.dest.name)} 주변 주차장 지도">
+  ${roads.map(v=>`<line x1="${-R}" y1="${v*.55}" x2="${R}" y2="${v*.55}" class="rd" stroke-width="${v===0?26:14}"/><line x1="${v}" y1="${-R}" x2="${v}" y2="${R}" class="rd" stroke-width="${v===0?26:14}"/>`).join('')}
+  <line x1="${-R}" y1="${R*.5}" x2="${R}" y2="${-R*.4}" class="rd" stroke-width="22"/>
+  <circle r="500" fill="rgba(21,70,201,.07)" style="stroke:var(--blue)" stroke-width="4" stroke-dasharray="18 14"/>
+  <text x="0" y="-470" text-anchor="middle" font-size="34" style="fill:var(--blue)" font-weight="700">반경 500m</text>
+  ${S.lots.map(l=>{const k=st(l),sel=S.sel===l.id||(S.guide&&S.guide.id===l.id);return `<g class="mk" data-lot="${l.id}" transform="translate(${l.dx},${-l.dy})" style="cursor:pointer">
+    <rect x="-46" y="-46" width="92" height="92" rx="16" style="fill:${col[k]};stroke:${sel?'var(--ink)':'#fff'}" stroke-width="${sel?10:6}"/>
+    <text y="-4" text-anchor="middle" font-size="40" font-weight="700" fill="#fff">P</text>
+    <text y="32" text-anchor="middle" font-size="28" font-weight="700" fill="#fff">${k==='full'?'만차':l.avail}</text></g>`}).join('')}
+  <g><path d="M0 0 C-30 -40 -34 -60 -34 -76 A34 34 0 1 1 34 -76 C34 -60 30 -40 0 0Z" style="fill:var(--ink)"/><circle cy="-76" r="12" style="fill:var(--panel)"/></g>
+  </svg><span class="cap">● 목적지 ${esc(S.dest.name)} · 시연용 가상 위치</span>`;
+}
+function resultsView(){
+  const L=sorted();const rec=recommend(null);
+  return `<div class="map" id="map">${mapSvg()}</div>
+  <div class="tabs" role="group" aria-label="정렬">${[['rec','추천순'],['near','가까운순'],['cheap','저렴한순']].map(([k,t])=>`<button class="tab" data-sort="${k}" aria-pressed="${S.sort===k}">${t}</button>`).join('')}</div>
+  <ul class="cards">${L.map(l=>`<li><button class="card${S.sel===l.id?' sel':''}" data-lot="${l.id}">
+    <span class="nm"><span>${esc(l.name)}</span>${rec&&rec.id===l.id?'<span class="rank">추천 1순위</span>':''}</span>
+    <span>${badge(l)}</span><span class="upd">${ago(l.age)}</span>
+    <span class="meta">도보 <b>${walkMin(l)}분</b> · 30분 <b>${won(fee30(l))}</b></span><span class="upd">총 ${l.total}면</span>
+  </button></li>`).join('')}</ul>`;
+}
+function guideView(){
+  const l=byId(S.guide.id);const s=status(l);
+  return `<div class="guide">
+   <div class="now"><div class="k">안내 중인 주차장</div><h3>${esc(l.name)}</h3>
+    <div class="row">${badge(l)}<span>도보 ${walkMin(l)}분 · 30분 ${won(fee30(l))}</span></div></div>
+   <div class="live"><span class="dot" aria-hidden="true"></span><span>자리 상황을 지켜보고 있어요 · ${ago(l.age)}</span></div>
+   <p style="margin:0 0 6px;font-weight:700">내비게이션 앱으로 이어서 안내</p>
+   <div class="links">${navLinks(l)}</div>
+   <div class="safety" style="margin-top:16px"><span aria-hidden="true">⚠</span><div><b>만차가 되면 알려 드려요.</b><br>알림을 받으면 안전한 곳에 정차한 뒤 화면을 확인하세요.</div></div>
+   <div class="stack2" style="margin-top:16px"><button class="btn" id="stopGuide">안내 종료하고 목록으로</button></div>
+   ${s.k==='full'&&!S.sheet?`<p class="note">이 주차장은 현재 만차입니다.</p>`:''}
+  </div>`;
+}
+function navLinks(l){
+  const n=encodeURIComponent(l.name),la=lat(l).toFixed(6),ln=lng(l).toFixed(6);
+  return `<a href="https://map.kakao.com/link/to/${n},${la},${ln}" target="_blank" rel="noopener">카카오맵 길찾기</a><a href="tmap://route?goalname=${n}&goalx=${ln}&goaly=${la}">T맵 열기(앱)</a>`;
+}
+function detailSheet(){
+  const l=byId(S.sel);const s=status(l);const rec=recommend(l.id);
+  return `<div class="dim" data-close="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="dt">
+   <h3 id="dt">${esc(l.name)}</h3><span class="note">${ago(l.age)} · 운영 ${l.hours}</span>
+   <div class="bignum"><span class="n" style="color:var(--${s.k})">${s.k==='full'?'만차':l.avail}</span><span>${s.k==='full'?'지금은 빈자리가 없어요':'면 남음 / 총 '+l.total+'면'}</span></div>
+   <div class="facts"><div>상태<b style="color:var(--${s.k})">${s.i} ${s.t}</b></div><div>목적지까지<b>도보 ${walkMin(l)}분</b></div><div>30분 요금<b>${won(fee30(l))}</b></div></div>
+   ${s.k==='full'&&rec?`<div class="alt"><b>대신 이곳은 어떠세요?</b><div style="margin:6px 0">${esc(rec.name)} ${badge(rec)}</div><button class="btn pri" style="width:100%" data-go="${rec.id}">${esc(rec.name)}로 안내</button></div>`:''}
+   <div class="stack2"><button class="btn pri big" data-go="${l.id}" ${s.k==='full'?'disabled':''}>이 주차장으로 안내</button><button class="btn" data-close="1">닫기</button></div>
+  </div></div>`;
+}
+function fullSheet(){
+  const l=byId(S.guide.id);const rec=recommend(l.id);
+  return `<div class="dim"><div class="sheet alert" role="alertdialog" aria-modal="true" aria-labelledby="ft">
+   <h3 id="ft">${esc(l.name)}이(가) 방금 만차가 되었어요</h3>
+   <p class="note" style="margin:4px 0 0">안전한 곳에 정차한 뒤 선택해 주세요.</p>
+   ${rec?`<div class="alt"><span class="rank">대체 추천 1순위</span><h3 style="margin-top:8px">${esc(rec.name)}</h3>
+     <div class="row" style="margin:6px 0 4px">${badge(rec)}<span class="note">${ago(rec.age)}</span></div>
+     <div class="facts" style="margin-bottom:4px"><div>목적지까지<b>도보 ${walkMin(rec)}분</b></div><div>30분 요금<b>${won(fee30(rec))}</b></div><div>총 면수<b>${rec.total}면</b></div></div>
+     <p class="note" style="margin:0">추천 이유: 자리가 ${status(rec).t} 상태이고 목적지와 가까워요.</p></div>
+     <div class="stack2"><button class="btn pri big" data-go="${rec.id}" data-alt="1">이곳으로 안내 변경</button><button class="btn" id="seeOthers">다른 후보 보기</button><button class="btn" data-close="1">그래도 계속 가기</button></div>`
+   :`<p>반경 500m 안에 자리가 남은 공영주차장이 없어요.</p><button class="btn big" id="seeOthers">목록 보기</button>`}
+  </div></div>`;
+}
+function render(){
+  let h=S.view==='home'?homeView():S.view==='results'?resultsView():guideView();
+  if(S.sheet==='detail'&&S.sel)h+=detailSheet();
+  if(S.sheet==='full'&&S.guide)h+=fullSheet();
+  if(S.toast)h+=`<div class="toast" role="status">${esc(S.toast)}</div>`;
+  const keep=S.sheet?null:scr.scrollTop;
+  scr.innerHTML=h;
+  if(keep!=null)scr.scrollTop=keep;
+  $('#backBtn').hidden=S.view==='home';
+  $('#backBtn').textContent=S.view==='guide'?'← 목록':'← 처음';
+  $('#forceFull').disabled=!S.guide;
+  $('#forceHint').textContent=S.guide?'안내 중인 주차장의 잔여면을 0으로 만들어 만차 알림을 시연합니다.':'주차장 안내를 시작하면 사용할 수 있습니다.';
+}
+function toast(t){S.toast=t;render();clearTimeout(toast.h);toast.h=setTimeout(()=>{S.toast='';render()},2600)}
+function search(text){
+  const t=text.trim().replace(/\s/g,'');if(!t)return;
+  const d=DESTS.find(x=>x.name.replace(/\s/g,'').includes(t)||t.includes(x.name.replace(/역$/,'')));
+  utMark('start');
+  if(!d){S.view='home';render();toast('"'+text+'"은(는) 시연 데이터에 없어요. 아래 목적지 중에서 골라 주세요.');return}
+  $('#q').value=d.name;loadDest(d);S.view='results';S.sel=null;S.sheet=null;S.guide=null;S.sort='rec';
+  utMark('결과 확인: '+d.name);render();scr.scrollTop=0;
+}
+function startGuide(id,isAlt){
+  const l=byId(id);S.guide={id};S.sel=id;S.sheet=null;S.view='guide';
+  if(isAlt)utStop('대체 주차장 선택: '+l.name);else utStop('안내 시작: '+l.name);
+  render();scr.scrollTop=0;toast(l.name+'(으)로 안내를 시작했어요.');
+}
+document.getElementById('dests').innerHTML=DESTS.map(d=>`<option value="${d.name}">`).join('');
+$('#searchForm').addEventListener('submit',e=>{e.preventDefault();search($('#q').value)});
+$('#backBtn').addEventListener('click',()=>{if(S.view==='guide'){S.view='results';S.guide=null}else{S.view='home';S.dest=null}S.sheet=null;render()});
+scr.addEventListener('click',e=>{
+  const t=e.target;
+  const dest=t.closest('[data-dest]');if(dest){const d=DESTS.find(x=>x.id===dest.dataset.dest);$('#q').value=d.name;search(d.name);return}
+  const go=t.closest('[data-go]');if(go&&!go.disabled){startGuide(go.dataset.go,!!go.dataset.alt);return}
+  if(t.closest('#seeOthers')){S.sheet=null;S.guide=null;S.view='results';S.sort='rec';utMark('다른 후보 보기');render();scr.scrollTop=0;return}
+  if(t.closest('#stopGuide')){S.guide=null;S.view='results';render();return}
+  const cl=t.closest('[data-close]');if(cl&&(t===cl||cl.tagName==='BUTTON')){S.sheet=null;render();return}
+  const sort=t.closest('[data-sort]');if(sort){S.sort=sort.dataset.sort;render();return}
+  const lot=t.closest('[data-lot]');if(lot&&S.view==='results'){S.sel=lot.dataset.lot;S.sheet='detail';utMark('상세 확인: '+byId(S.sel).name);render()}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.sheet){S.sheet=null;render()}});
+$('#forceFull').addEventListener('click',()=>{if(!S.guide)return;const l=byId(S.guide.id);l.avail=0;l.age=0;S.toast='';S.sheet='full';render()});
+$('#resetAll').addEventListener('click',()=>{S={view:'home',dest:null,lots:[],sort:'rec',sel:null,guide:null,sheet:null,toast:'',ut:{start:null,stop:null,log:[]}};$('#q').value='';$('#utLog').innerHTML='';render()});
+
+/* real-time simulation */
+setInterval(()=>{
+  if(!S.dest)return;
+  S.lots.forEach(l=>{l.age+=TICK;
+    if(Math.random()<.45){const g=S.guide&&S.guide.id===l.id;const d=Math.round((Math.random()-(g?.62:.5))*4);
+      const before=l.avail;l.avail=Math.min(l.total,Math.max(0,l.avail+d));if(l.avail!==before||Math.random()<.5)l.age=0}});
+  let fresh=false;
+  if(S.guide&&!S.sheet&&status(byId(S.guide.id)).k==='full'){S.sheet='full';S.toast='';fresh=true}
+  if(!S.sheet||fresh)render();
+},TICK*1000);
+render();
+}
+</script>
+</body>
+</html>
